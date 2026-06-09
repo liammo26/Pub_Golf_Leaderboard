@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Johnny's Stag Do — Pub Golf Scorecard</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f2; color: #1a1a1a; min-height: 100vh; }
+    .page { max-width: 1500px; margin: 0 auto; padding: 1rem; }
+    .header { text-align: center; padding: 1.5rem 1rem 1rem; background: #fff; border-radius: 12px; border: 1px solid #e0ddd6; margin-bottom: 1rem; }
+    .header h1 { font-size: 26px; font-weight: 600; color: #1a1a1a; }
+    .header p  { font-size: 14px; color: #666; margin-top: 6px; }
+    .controls { display: flex; gap: 8px; padding: 0.75rem 1rem; align-items: center; flex-wrap: wrap; background: #fff; border-radius: 12px; border: 1px solid #e0ddd6; margin-bottom: 1rem; }
+    .controls label { font-size: 13px; color: #666; }
+    .controls select { font-size: 13px; padding: 5px 10px; border-radius: 8px; border: 1px solid #ccc; background: #fff; color: #1a1a1a; height: 34px; }
+    .controls button { font-size: 13px; padding: 5px 14px; height: 34px; border-radius: 8px; border: 1px solid #ccc; background: #fff; color: #1a1a1a; cursor: pointer; font-weight: 500; }
+    .controls button:hover { background: #f0ede8; }
+    .controls button.primary { background: #1a1a1a; color: #fff; border-color: #1a1a1a; }
+    .controls button.primary:hover { background: #333; }
+    .card { background: #fff; border-radius: 12px; border: 1px solid #e0ddd6; overflow: hidden; margin-bottom: 1rem; }
+    .table-wrap { overflow-x: auto; }
+    table { border-collapse: collapse; width: 100%; font-size: 12px; }
+    thead th { background: #f5f5f2; color: #555; font-weight: 600; padding: 8px 6px; text-align: center; border: 1px solid #e0ddd6; white-space: nowrap; vertical-align: top; }
+    thead th.name-col { text-align: left; min-width: 130px; position: sticky; left: 0; z-index: 3; background: #f5f5f2; vertical-align: middle; }
+    .th-inner { display: flex; flex-direction: column; gap: 3px; min-width: 90px; }
+    .pub-name-edit { font-size: 12px; font-weight: 700; color: #1a1a1a; cursor: text; outline: none; border-bottom: 1px dashed #ccc; padding-bottom: 2px; }
+    .pub-name-edit:focus { background: #e8f0fe; border-radius: 3px; border-bottom-color: transparent; }
+    .hole-num { font-size: 10px; color: #999; margin-bottom: 2px; }
+    .pub-meta-edit { font-size: 10px; color: #777; cursor: text; outline: none; font-style: italic; white-space: normal; line-height: 1.3; }
+    .pub-meta-edit:focus { background: #fffbe6; border-radius: 3px; font-style: normal; }
+    .meta-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 4px; }
+    .beer-label { color: #b07a00; }
+    .rule-label { color: #a03030; }
+    tbody tr:nth-child(even) { background: #faf9f7; }
+    tbody tr:hover { background: #eef4ff !important; }
+    tbody td { border: 1px solid #e0ddd6; padding: 0; text-align: center; vertical-align: middle; }
+    tbody td.name-cell { text-align: left; padding: 4px 10px; font-weight: 500; font-size: 12px; color: #1a1a1a; position: sticky; left: 0; background: #fff; z-index: 1; min-width: 130px; cursor: text; outline: none; }
+    tbody tr:nth-child(even) td.name-cell { background: #faf9f7; }
+    tbody tr:hover td.name-cell { background: #eef4ff !important; }
+    tbody td input[type=number] { width: 54px; border: none; background: transparent; text-align: center; font-size: 13px; color: #1a1a1a; padding: 8px 2px; outline: none; font-family: inherit; -moz-appearance: textfield; }
+    tbody td input[type=number]::-webkit-inner-spin-button, tbody td input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    tbody td input[type=number]:focus { background: rgba(59,130,246,0.08); }
+    td.total-cell { font-weight: 700; font-size: 13px; color: #1a1a1a; padding: 4px 10px; background: #f5f5f2; min-width: 52px; border: 1px solid #e0ddd6; }
+    td.rank-cell  { font-weight: 700; font-size: 13px; padding: 4px 10px; min-width: 44px; border: 1px solid #e0ddd6; }
+    .rank-1 { color: #B8860B; font-size: 16px; }
+    .rank-2 { color: #888; }
+    .rank-3 { color: #8B4513; }
+    .score-cell.eagle  { background: #DBEAFE; }
+    .score-cell.eagle input  { color: #1D4ED8; font-weight: 700; }
+    .score-cell.birdie { background: #DCFCE7; }
+    .score-cell.birdie input { color: #166534; font-weight: 600; }
+    .score-cell.bogey  { background: #FEF9C3; }
+    .score-cell.bogey input  { color: #854D0E; }
+    .score-cell.double { background: #FEE2E2; }
+    .score-cell.double input { color: #991B1B; font-weight: 600; }
+    tfoot td { font-weight: 600; font-size: 12px; background: #f5f5f2; padding: 6px 6px; border: 1px solid #e0ddd6; text-align: center; color: #666; }
+    tfoot td.label { text-align: left; padding: 6px 10px; position: sticky; left: 0; background: #f5f5f2; }
+    tfoot td input[type=number] { width: 54px; border: none; background: transparent; text-align: center; font-size: 12px; color: #666; font-weight: 600; font-family: inherit; padding: 2px; outline: none; -moz-appearance: textfield; }
+    tfoot td input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
+    tfoot td input[type=number]:focus { background: #e8f0fe; border-radius: 3px; }
+    .legend { display: flex; gap: 14px; padding: 0.75rem 1rem; flex-wrap: wrap; background: #fff; border-radius: 12px; border: 1px solid #e0ddd6; align-items: center; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #666; }
+    .legend-dot  { width: 12px; height: 12px; border-radius: 3px; flex-shrink: 0; }
+    .legend-tip  { font-size: 11px; color: #aaa; margin-left: auto; font-style: italic; }
+    @media print { body { background: #fff; } .controls { display: none; } .page { padding: 0; } .card, .header, .legend { border-radius: 0; } }
+  </style>
+</head>
+<body>
+<div class="page">
+  <div class="header">
+    <h1>🍺 Johnny's Stag Do — Pub Golf Scorecard</h1>
+    <p>9 holes &nbsp;•&nbsp; 20 players &nbsp;•&nbsp; Düsseldorf 🇩🇪 &nbsp;•&nbsp; lowest score wins</p>
+  </div>
+  <div class="controls">
+    <label>Set all pars:</label>
+    <select id="global-par" onchange="applyGlobalPar()">
+      <option value="">— select —</option>
+      <option value="1">1</option>
+      <option value="2">2</option>
+      <option value="3">3</option>
+      <option value="4">4</option>
+      <option value="5">5</option>
+    </select>
+    <button onclick="resetScores()">🔄 Reset scores</button>
+    <button onclick="exportCSV()">📥 Export CSV</button>
+    <button class="primary" onclick="window.print()">🖨️ Print</button>
+  </div>
+  <div class="card">
+    <div class="table-wrap">
+      <table id="scorecard">
+        <thead>
+          <tr id="pub-header"><th class="name-col">Player</th><th>Total</th><th>Rank</th></tr>
+        </thead>
+        <tbody id="score-body"></tbody>
+        <tfoot id="par-footer"></tfoot>
+      </table>
+    </div>
+  </div>
+  <div class="legend">
+    <strong style="font-size:12px;color:#1a1a1a;">Legend:</strong>
+    <div class="legend-item"><div class="legend-dot" style="background:#BFDBFE"></div>Eagle (2+ under)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#BBF7D0"></div>Birdie (1 under)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#e8e6e0"></div>Par</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FEF08A"></div>Bogey (1 over)</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FECACA"></div>Double+ (2+ over)</div>
+    <span class="legend-tip">Click any pub name, beer, rule, or player name to edit</span>
+  </div>
+</div>
+<script>
+  const PUBS = 9, PLAYERS = 22;
+  const pubDefaults  = ['Et Kabuffke','Uerige Brewery','Holy Craft Beer Bar','Brauerei Kurzer','Pub 5','Zum Schlussel','Suttons Irish Pub','Salmaiki','Brauerei im Fuchschen'];
+  const beerDefaults = ['Killiepitsch Stube','Altbier','Schwarzbier','Altbier & Korn Chaser','Beer TBC','Radler','Jagermeister','Hugo Spritz','Altbier'];
+  const ruleDefaults = Array(PUBS).fill('Rule TBC');
+  const parDefaults  = [1,3,4,4,3,3,1,3,4];
+  const defaultPlayers = [
+    'Johnny (Groom)','Player 2','Player 3','Player 4','Player 5',
+    'Player 6','Player 7','Player 8','Player 9','Player 10',
+    'Player 11','Player 12','Player 13','Player 14','Player 15',
+    'Player 16','Player 17','Player 18','Player 19','Player 20','Player 21','Player 22'
+  ];
+  let pars    = [...parDefaults];
+  let scores  = Array.from({length: PLAYERS}, () => Array(PUBS).fill(''));
+  let players = [...defaultPlayers];
+  let pubs    = [...pubDefaults];
+  let beers   = [...beerDefaults];
+  let rules   = [...ruleDefaults];
+
+  function makeEditable(tag, cls, text, onBlur) {
+    const el = document.createElement(tag);
+    el.className = cls; el.contentEditable = true; el.textContent = text;
+    el.addEventListener('blur', onBlur);
+    return el;
+  }
+  function buildHeader() {
+    const row = document.getElementById('pub-header');
+    row.innerHTML = '<th class="name-col">Player</th>';
+    for (let p = 0; p < PUBS; p++) {
+      const th = document.createElement('th');
+      const wrap = document.createElement('div'); wrap.className = 'th-inner';
+      const holeDiv = document.createElement('div'); holeDiv.className = 'hole-num'; holeDiv.textContent = 'Hole ' + (p+1);
+      const nameEl = makeEditable('div','pub-name-edit', pubs[p],  ()=>{ pubs[p]=nameEl.textContent; });
+      const beerLbl = document.createElement('div'); beerLbl.className='meta-label beer-label'; beerLbl.textContent='🍺 Beer';
+      const beerEl  = makeEditable('div','pub-meta-edit', beers[p], ()=>{ beers[p]=beerEl.textContent; });
+      const ruleLbl = document.createElement('div'); ruleLbl.className='meta-label rule-label'; ruleLbl.textContent='📋 Rule';
+      const ruleEl  = makeEditable('div','pub-meta-edit', rules[p], ()=>{ rules[p]=ruleEl.textContent; });
+      wrap.append(holeDiv, nameEl, beerLbl, beerEl, ruleLbl, ruleEl);
+      th.appendChild(wrap); row.appendChild(th);
+    }
+    const t=document.createElement('th'); t.textContent='Total'; row.appendChild(t);
+    const r=document.createElement('th'); r.textContent='Rank';  row.appendChild(r);
+  }
+  function getClass(score, par) {
+    if (score===''||par==='') return '';
+    const d=score-par;
+    if (d<=-2) return 'eagle'; if (d===-1) return 'birdie'; if (d===0) return ''; if (d===1) return 'bogey'; return 'double';
+  }
+  function buildBody() {
+    const tbody = document.getElementById('score-body'); tbody.innerHTML='';
+    for (let r=0;r<PLAYERS;r++) {
+      const tr=document.createElement('tr');
+      const nameTd=document.createElement('td'); nameTd.className='name-cell'; nameTd.contentEditable=true; nameTd.textContent=players[r];
+      nameTd.addEventListener('blur',()=>{ players[r]=nameTd.textContent; }); tr.appendChild(nameTd);
+      for (let c=0;c<PUBS;c++) {
+        const td=document.createElement('td'); td.className='score-cell';
+        const inp=document.createElement('input'); inp.type='number'; inp.min=1; inp.max=20; inp.placeholder=pars[c];
+        if (scores[r][c]!=='') inp.value=scores[r][c];
+        inp.addEventListener('input',function(){ scores[r][c]=this.value===''?'':parseInt(this.value); td.className='score-cell '+getClass(scores[r][c],pars[c]); updateTotals(); });
+        td.appendChild(inp); tr.appendChild(td);
+      }
+      const totalTd=document.createElement('td'); totalTd.className='total-cell'; totalTd.id='total-'+r; totalTd.textContent='—'; tr.appendChild(totalTd);
+      const rankTd=document.createElement('td');  rankTd.className='rank-cell';  rankTd.id='rank-'+r;  rankTd.textContent='—'; tr.appendChild(rankTd);
+      tbody.appendChild(tr);
+    }
+  }
+  function buildFooter() {
+    const tfoot=document.getElementById('par-footer'); tfoot.innerHTML='';
+    const tr=document.createElement('tr');
+    const lbl=document.createElement('td'); lbl.className='label'; lbl.textContent='Par'; tr.appendChild(lbl);
+    for (let c=0;c<PUBS;c++) {
+      const td=document.createElement('td'); const inp=document.createElement('input');
+      inp.type='number'; inp.min=1; inp.max=10; inp.value=pars[c];
+      inp.addEventListener('change',function(){ pars[c]=parseInt(this.value)||3; refreshColors(); updateTotals(); });
+      td.appendChild(inp); tr.appendChild(td);
+    }
+    const totPar=document.createElement('td'); totPar.id='total-par'; totPar.style.cssText='font-weight:700;color:#1a1a1a'; totPar.textContent=pars.reduce((a,b)=>a+b,0); tr.appendChild(totPar);
+    tr.appendChild(document.createElement('td')); tfoot.appendChild(tr);
+  }
+  function refreshColors() {
+    document.querySelectorAll('#score-body tr').forEach((tr,r)=>{
+      tr.querySelectorAll('td.score-cell').forEach((td,c)=>{
+        const inp=td.querySelector('input'); const val=inp&&inp.value!==''?parseInt(inp.value):'';
+        td.className='score-cell '+getClass(val,pars[c]);
+      });
+    });
+  }
+  function updateTotals() {
+    const totals=[];
+    for (let r=0;r<PLAYERS;r++) {
+      const filled=scores[r].filter(s=>s!=='');
+      const sum=filled.reduce((a,b)=>a+(parseInt(b)||0),0);
+      const total=filled.length>0?sum:null; totals.push(total);
+      document.getElementById('total-'+r).textContent=total!==null?sum:'—';
+    }
+    const ranked=totals.map((t,i)=>({i,t})).filter(x=>x.t!==null).sort((a,b)=>a.t-b.t);
+    for (let r=0;r<PLAYERS;r++){ const c=document.getElementById('rank-'+r); c.textContent='—'; c.className='rank-cell'; }
+    ranked.forEach((x,pos)=>{
+      const c=document.getElementById('rank-'+x.i); c.textContent=pos+1;
+      c.className='rank-cell'+(pos===0?' rank-1':pos===1?' rank-2':pos===2?' rank-3':'');
+    });
+    const tp=document.getElementById('total-par'); if(tp) tp.textContent=pars.reduce((a,b)=>a+b,0);
+  }
+  function applyGlobalPar() {
+    const val=parseInt(document.getElementById('global-par').value); if(!val) return;
+    pars=Array(PUBS).fill(val);
+    document.querySelectorAll('#par-footer input').forEach(inp=>inp.value=val);
+    refreshColors(); updateTotals();
+  }
+  function resetScores() {
+    if (!confirm('Reset all scores? Names, beers, rules and pars will be kept.')) return;
+    scores=Array.from({length:PLAYERS},()=>Array(PUBS).fill(''));
+    buildBody(); updateTotals();
+  }
+  function exportCSV() {
+    let csv='Player,'+pubs.join(',')+',Total\n';
+    csv+='Beer,'+beers.join(',')+',\n';
+    csv+='Rule,'+rules.join(',')+',\n';
+    csv+='Par,'+pars.join(',')+','+pars.reduce((a,b)=>a+b,0)+'\n';
+    for (let r=0;r<PLAYERS;r++) {
+      const filled=scores[r].filter(s=>s!=='');
+      const sum=filled.length>0?filled.reduce((a,b)=>a+(parseInt(b)||0),0):'';
+      csv+=players[r]+','+scores[r].map(s=>s===''?'':s).join(',')+','+sum+'\n';
+    }
+    const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
+    const a=document.createElement('a'); a.href=url; a.download='johnnys_stag_scorecard.csv'; a.click(); URL.revokeObjectURL(url);
+  }
+  buildHeader(); buildBody(); buildFooter(); updateTotals();
+</script>
+</body>
+</html>
