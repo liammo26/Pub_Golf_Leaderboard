@@ -9,7 +9,7 @@
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f5f5f2; color: #1a1a1a; min-height: 100vh; }
     .page { max-width: 1500px; margin: 0 auto; padding: 1rem; }
     .header { text-align: center; padding: 1.5rem 1rem 1rem; background: #fff; border-radius: 12px; border: 1px solid #e0ddd6; margin-bottom: 1rem; }
-    .header h1 { font-size: 26px; font-weight: 600; color: #1a1a1a; }
+    .header h1 { font-size: 26px; font-weight: 600; }
     .header p  { font-size: 14px; color: #666; margin-top: 6px; }
     .controls { display: flex; gap: 8px; padding: 0.75rem 1rem; align-items: center; flex-wrap: wrap; background: #fff; border-radius: 12px; border: 1px solid #e0ddd6; margin-bottom: 1rem; }
     .controls label { font-size: 13px; color: #666; }
@@ -54,7 +54,7 @@
     .score-cell.bogey input  { color: #854D0E; }
     .score-cell.double { background: #FEE2E2; }
     .score-cell.double input { color: #991B1B; font-weight: 600; }
-    tfoot td { font-weight: 600; font-size: 12px; background: #f5f5f2; padding: 6px 6px; border: 1px solid #e0ddd6; text-align: center; color: #666; }
+    tfoot td { font-weight: 600; font-size: 12px; background: #f5f5f2; padding: 6px; border: 1px solid #e0ddd6; text-align: center; color: #666; }
     tfoot td.label { text-align: left; padding: 6px 10px; position: sticky; left: 0; background: #f5f5f2; }
     tfoot td input[type=number] { width: 54px; border: none; background: transparent; text-align: center; font-size: 12px; color: #666; font-weight: 600; font-family: inherit; padding: 2px; outline: none; -moz-appearance: textfield; }
     tfoot td input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; }
@@ -70,17 +70,14 @@
 <div class="page">
   <div class="header">
     <h1>🍺 Johnny's Stag Do — Pub Golf Scorecard</h1>
-    <p>9 holes &nbsp;•&nbsp; 20 players &nbsp;•&nbsp; Düsseldorf 🇩🇪 &nbsp;•&nbsp; lowest score wins</p>
+    <p>9 holes &nbsp;•&nbsp; 22 players &nbsp;•&nbsp; Düsseldorf 🇩🇪 &nbsp;•&nbsp; lowest score wins</p>
   </div>
   <div class="controls">
     <label>Set all pars:</label>
     <select id="global-par" onchange="applyGlobalPar()">
       <option value="">— select —</option>
-      <option value="1">1</option>
-      <option value="2">2</option>
-      <option value="3">3</option>
-      <option value="4">4</option>
-      <option value="5">5</option>
+      <option value="1">1</option><option value="2">2</option>
+      <option value="3">3</option><option value="4">4</option><option value="5">5</option>
     </select>
     <button onclick="resetScores()">🔄 Reset scores</button>
     <button onclick="exportCSV()">📥 Export CSV</button>
@@ -89,9 +86,7 @@
   <div class="card">
     <div class="table-wrap">
       <table id="scorecard">
-        <thead>
-          <tr id="pub-header"><th class="name-col">Player</th><th>Total</th><th>Rank</th></tr>
-        </thead>
+        <thead><tr id="pub-header"><th class="name-col">Player</th><th>Total</th><th>Rank</th></tr></thead>
         <tbody id="score-body"></tbody>
         <tfoot id="par-footer"></tfoot>
       </table>
@@ -104,27 +99,51 @@
     <div class="legend-item"><div class="legend-dot" style="background:#e8e6e0"></div>Par</div>
     <div class="legend-item"><div class="legend-dot" style="background:#FEF08A"></div>Bogey (1 over)</div>
     <div class="legend-item"><div class="legend-dot" style="background:#FECACA"></div>Double+ (2+ over)</div>
-    <span class="legend-tip">Click any pub name, beer, rule, or player name to edit</span>
+    <span class="legend-tip">Click any name, beer, or rule to edit &nbsp;•&nbsp; Scores auto-saved</span>
   </div>
 </div>
 <script>
   const PUBS = 9, PLAYERS = 22;
-  const pubDefaults  = ['Et Kabuffke','Uerige Brewery','Holy Craft Beer Bar','Brauerei Kurzer','Pub 5','Zum Schlussel','Suttons Irish Pub','Salmaiki','Brauerei im Fuchschen'];
-  const beerDefaults = ['Killiepitsch Stube','Altbier','Schwarzbier','Altbier & Korn Chaser','Beer TBC','Radler','Jagermeister','Hugo Spritz','Altbier'];
+  const STORAGE_KEY = 'pubgolf_scorecard';
+
+  const pubDefaults  = ['Et Kabuffke','Uerige Brewery','Kasematten','Holy Craft Beer Bar','Brauerei Kurzer','Zum Schlussel','Suttons Irish Pub','Kreuzherreneke','Brauerei im Fuchschen'];
+  const beerDefaults = ['Killiepitsch Stube','Altbier','Hugo Spritz','Schwarzbier','Altbier & Korn','Radler','Jagermeister','Underberg','Altbier'];
   const ruleDefaults = Array(PUBS).fill('Rule TBC');
   const parDefaults  = [1,3,4,4,3,3,1,3,4];
-  const defaultPlayers = [
-    'Johnny (Groom)','Player 2','Player 3','Player 4','Player 5',
-    'Player 6','Player 7','Player 8','Player 9','Player 10',
-    'Player 11','Player 12','Player 13','Player 14','Player 15',
-    'Player 16','Player 17','Player 18','Player 19','Player 20','Player 21','Player 22'
+  const playerDefaults = [
+    'Johnny (Groom)','Davy S', 'James','Jack','Callum','Liam','Ian',
+    'Paddy','Eoin','Conor','Bodel','Ross','Strugeon',
+    'Jerry','Jenkins','Lucas','Alastair','Andrew','David Hoyos',
+    'David Gilchrist','Harry','Jan'
   ];
+
   let pars    = [...parDefaults];
   let scores  = Array.from({length: PLAYERS}, () => Array(PUBS).fill(''));
-  let players = [...defaultPlayers];
+  let players = [...playerDefaults];
   let pubs    = [...pubDefaults];
   let beers   = [...beerDefaults];
   let rules   = [...ruleDefaults];
+
+  function saveState() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ pars, scores, players, pubs, beers, rules }));
+    } catch(e) {}
+  }
+
+  function loadState() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return false;
+      const d = JSON.parse(raw);
+      if (d.pars)    pars    = d.pars;
+      if (d.scores)  scores  = d.scores;
+      if (d.players) players = d.players;
+      if (d.pubs)    pubs    = d.pubs;
+      if (d.beers)   beers   = d.beers;
+      if (d.rules)   rules   = d.rules;
+      return true;
+    } catch(e) { return false; }
+  }
 
   function makeEditable(tag, cls, text, onBlur) {
     const el = document.createElement(tag);
@@ -132,40 +151,49 @@
     el.addEventListener('blur', onBlur);
     return el;
   }
+
   function buildHeader() {
     const row = document.getElementById('pub-header');
     row.innerHTML = '<th class="name-col">Player</th>';
     for (let p = 0; p < PUBS; p++) {
       const th = document.createElement('th');
       const wrap = document.createElement('div'); wrap.className = 'th-inner';
-      const holeDiv = document.createElement('div'); holeDiv.className = 'hole-num'; holeDiv.textContent = 'Hole ' + (p+1);
-      const nameEl = makeEditable('div','pub-name-edit', pubs[p],  ()=>{ pubs[p]=nameEl.textContent; });
+      const holeDiv = document.createElement('div'); holeDiv.className = 'hole-num'; holeDiv.textContent = 'Hole '+(p+1);
+      const nameEl = makeEditable('div','pub-name-edit', pubs[p],  ()=>{ pubs[p]=nameEl.textContent; saveState(); });
       const beerLbl = document.createElement('div'); beerLbl.className='meta-label beer-label'; beerLbl.textContent='🍺 Beer';
-      const beerEl  = makeEditable('div','pub-meta-edit', beers[p], ()=>{ beers[p]=beerEl.textContent; });
+      const beerEl  = makeEditable('div','pub-meta-edit', beers[p], ()=>{ beers[p]=beerEl.textContent; saveState(); });
       const ruleLbl = document.createElement('div'); ruleLbl.className='meta-label rule-label'; ruleLbl.textContent='📋 Rule';
-      const ruleEl  = makeEditable('div','pub-meta-edit', rules[p], ()=>{ rules[p]=ruleEl.textContent; });
+      const ruleEl  = makeEditable('div','pub-meta-edit', rules[p], ()=>{ rules[p]=ruleEl.textContent; saveState(); });
       wrap.append(holeDiv, nameEl, beerLbl, beerEl, ruleLbl, ruleEl);
       th.appendChild(wrap); row.appendChild(th);
     }
     const t=document.createElement('th'); t.textContent='Total'; row.appendChild(t);
     const r=document.createElement('th'); r.textContent='Rank';  row.appendChild(r);
   }
+
   function getClass(score, par) {
     if (score===''||par==='') return '';
     const d=score-par;
     if (d<=-2) return 'eagle'; if (d===-1) return 'birdie'; if (d===0) return ''; if (d===1) return 'bogey'; return 'double';
   }
+
   function buildBody() {
-    const tbody = document.getElementById('score-body'); tbody.innerHTML='';
-    for (let r=0;r<PLAYERS;r++) {
+    const tbody=document.getElementById('score-body'); tbody.innerHTML='';
+    for (let r=0; r<PLAYERS; r++) {
       const tr=document.createElement('tr');
       const nameTd=document.createElement('td'); nameTd.className='name-cell'; nameTd.contentEditable=true; nameTd.textContent=players[r];
-      nameTd.addEventListener('blur',()=>{ players[r]=nameTd.textContent; }); tr.appendChild(nameTd);
-      for (let c=0;c<PUBS;c++) {
+      nameTd.addEventListener('blur',()=>{ players[r]=nameTd.textContent; saveState(); });
+      tr.appendChild(nameTd);
+      for (let c=0; c<PUBS; c++) {
         const td=document.createElement('td'); td.className='score-cell';
         const inp=document.createElement('input'); inp.type='number'; inp.min=1; inp.max=20; inp.placeholder=pars[c];
         if (scores[r][c]!=='') inp.value=scores[r][c];
-        inp.addEventListener('input',function(){ scores[r][c]=this.value===''?'':parseInt(this.value); td.className='score-cell '+getClass(scores[r][c],pars[c]); updateTotals(); });
+        inp.addEventListener('input', function(){
+          scores[r][c]=this.value===''?'':parseInt(this.value);
+          td.className='score-cell '+getClass(scores[r][c],pars[c]);
+          updateTotals(); saveState();
+        });
+        td.className='score-cell '+getClass(scores[r][c], pars[c]);
         td.appendChild(inp); tr.appendChild(td);
       }
       const totalTd=document.createElement('td'); totalTd.className='total-cell'; totalTd.id='total-'+r; totalTd.textContent='—'; tr.appendChild(totalTd);
@@ -173,19 +201,22 @@
       tbody.appendChild(tr);
     }
   }
+
   function buildFooter() {
     const tfoot=document.getElementById('par-footer'); tfoot.innerHTML='';
     const tr=document.createElement('tr');
     const lbl=document.createElement('td'); lbl.className='label'; lbl.textContent='Par'; tr.appendChild(lbl);
-    for (let c=0;c<PUBS;c++) {
+    for (let c=0; c<PUBS; c++) {
       const td=document.createElement('td'); const inp=document.createElement('input');
       inp.type='number'; inp.min=1; inp.max=10; inp.value=pars[c];
-      inp.addEventListener('change',function(){ pars[c]=parseInt(this.value)||3; refreshColors(); updateTotals(); });
+      inp.addEventListener('change', function(){ pars[c]=parseInt(this.value)||3; refreshColors(); updateTotals(); saveState(); });
       td.appendChild(inp); tr.appendChild(td);
     }
-    const totPar=document.createElement('td'); totPar.id='total-par'; totPar.style.cssText='font-weight:700;color:#1a1a1a'; totPar.textContent=pars.reduce((a,b)=>a+b,0); tr.appendChild(totPar);
+    const totPar=document.createElement('td'); totPar.id='total-par'; totPar.style.cssText='font-weight:700;color:#1a1a1a';
+    totPar.textContent=pars.reduce((a,b)=>a+b,0); tr.appendChild(totPar);
     tr.appendChild(document.createElement('td')); tfoot.appendChild(tr);
   }
+
   function refreshColors() {
     document.querySelectorAll('#score-body tr').forEach((tr,r)=>{
       tr.querySelectorAll('td.score-cell').forEach((td,c)=>{
@@ -194,9 +225,10 @@
       });
     });
   }
+
   function updateTotals() {
     const totals=[];
-    for (let r=0;r<PLAYERS;r++) {
+    for (let r=0; r<PLAYERS; r++) {
       const filled=scores[r].filter(s=>s!=='');
       const sum=filled.reduce((a,b)=>a+(parseInt(b)||0),0);
       const total=filled.length>0?sum:null; totals.push(total);
@@ -210,17 +242,20 @@
     });
     const tp=document.getElementById('total-par'); if(tp) tp.textContent=pars.reduce((a,b)=>a+b,0);
   }
+
   function applyGlobalPar() {
     const val=parseInt(document.getElementById('global-par').value); if(!val) return;
     pars=Array(PUBS).fill(val);
     document.querySelectorAll('#par-footer input').forEach(inp=>inp.value=val);
-    refreshColors(); updateTotals();
+    refreshColors(); updateTotals(); saveState();
   }
+
   function resetScores() {
     if (!confirm('Reset all scores? Names, beers, rules and pars will be kept.')) return;
     scores=Array.from({length:PLAYERS},()=>Array(PUBS).fill(''));
-    buildBody(); updateTotals();
+    buildBody(); updateTotals(); saveState();
   }
+
   function exportCSV() {
     let csv='Player,'+pubs.join(',')+',Total\n';
     csv+='Beer,'+beers.join(',')+',\n';
@@ -234,6 +269,9 @@
     const blob=new Blob([csv],{type:'text/csv'}); const url=URL.createObjectURL(blob);
     const a=document.createElement('a'); a.href=url; a.download='johnnys_stag_scorecard.csv'; a.click(); URL.revokeObjectURL(url);
   }
+
+  // Boot
+  loadState();
   buildHeader(); buildBody(); buildFooter(); updateTotals();
 </script>
 </body>
